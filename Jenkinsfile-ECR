@@ -41,12 +41,11 @@ pipeline {
                 sh 'trivy image --format template --output trivy_report.html ${URL_REGISTRY}/${REPOSITORY_NAME}:$BUILD_NUMBER'
             }
        }
-        stage('Push Docker Image') {
+       stage('Push Docker Image') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'lil-ecr-credentials-id', usernameVariable: 'AWS_ECR_ACCESS_KEY_ID', passwordVariable: 'AWS_ECR_SECRET_ACCESS_KEY')]) {
+                    withCredentials([usernamePassword(credentialsId: 'lil-ecr-credentials-id', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                         def login = sh(script: "aws ecr get-login-password --region ${AWS_REGION}", returnStdout: true).trim()
-			//To allow Jenkins to log in to the Docker registry using AWS credentials.
                         sh "echo ${login} | docker login --username AWS --password-stdin ${URL_REGISTRY}"
                 
                         def customImage = docker.build("${URL_REGISTRY}/${REPOSITORY_NAME}:$BUILD_NUMBER")
