@@ -6,9 +6,14 @@ pipeline {
     }
     
     environment {
-        DOCKER_REGISTRY = "gcr.io/lili-devops"
-        IMAGE_NAME = "node-express-app"
-        GOOGLE_APPLICATION_CREDENTIALS = credentials('lili-gcp-service-account-passwd')
+        // Define any environment variables needed
+        DOCKER_REGISTRY = "gcr.io"  // Google Container Registry
+        IMAGE_NAME = "node-express-app"  // Name of your Docker image
+        IMAGE_TAG = "latest"  // Tag for your Docker image
+        GCP_PROJECT_ID = "lili-devops" // Your Google Cloud Platform project ID
+        GCP_SERVICE_ACCOUNT_KEY = credentials('lili-gcp-private-key') // Jenkins credentials ID for GCP service account key
+    }
+    
     }
     
     stages {
@@ -21,7 +26,7 @@ pipeline {
         stage('Build Docker image') {
             steps {
                 script {
-                     docker.build("${DOCKER_REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}")
+                      docker.build("${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}")
                 }
             }
         }
@@ -32,11 +37,19 @@ pipeline {
             }
         }
 
-        stage('Push to GCR') {
+        stage('Push Docker Image to GCR') {
             steps {
                 script {
-                    docker.withRegistry('', '${GOOGLE_APPLICATION_CREDENTIALS}') {
-                        docker.image("${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}").push()
+                    // Authenticate with Google Cloud using the service account key
+                    withCredentials([file(credentialsId: GCP_SERVICE_ACCOUNT_KEY, variable: 'GCP_KEY')]) {
+                        def GOOGLE_APPLICATION_CREDENTIALS = "${env.WORKSPACE}/gcp-key.json"
+                        sh "echo '${GCP_KEY}' > ${GOOGLE_APPLICATION_CREDENTIALS}"
+                        sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
+                        
+                        // Push the Docker image to Google Container Registry
+                        docker.withRegistry("${DOCKER_REGISTRY}", "${GCP_PROJECT_ID}") {
+                            docker.image("${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}").push()
+                        }
                     }
                 }
             }
