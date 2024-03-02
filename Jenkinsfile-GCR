@@ -14,7 +14,7 @@ pipeline {
         GCP_SERVICE_ACCOUNT_KEY = credentials('lili-gcp-private-key') // Jenkins credentials ID for GCP service account key
     }
     
-    }
+    
     
     stages {
         stage('SCM Checkout') {
