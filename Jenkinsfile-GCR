@@ -36,8 +36,9 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'lili-gcp-service-account-passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     script {
-                        sh "docker login -u ${USERNAME} -p ${PASSWORD} https://gcr.io"
-                        sh "docker push gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                        def dockerRegistry = "https://${REGISTRY_URL}"
+                        sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin ${dockerRegistry}"
+                        sh "docker push ${dockerRegistry}/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
                     }
                 }
             }
