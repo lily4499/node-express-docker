@@ -37,7 +37,7 @@ pipeline {
             steps {
                 script {
                     //docker.build("${GCR_REGION}/${PROJECT_ID}/${IMAGE_NAME}:${env.BUILD_NUMBER}")
-                    withDockerRegistry(credentialsId: 'lili-gcp-service-account-passwd', url: 'gcr.io') {
+                    withDockerRegistry(credentialsId: 'lili-gcp-service-account-passwd', url: 'https://gcr.io') {
                 //    docker.withRegistry("https://${REGISTRY_URL}", 'gcr:lili-gcp-service-account-key-json') {
                         docker.image("${GCR_REGION}/${PROJECT_ID}/${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
                     }
