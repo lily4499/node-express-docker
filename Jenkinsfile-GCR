@@ -33,29 +33,19 @@ pipeline {
             }
         }
 
-        stage('Build and Push Docker Image') {
+        
+      
+        stage('Push Docker image to GCR') {
             steps {
-                script {
-                    //docker.build("${GCR_REGION}/${PROJECT_ID}/${IMAGE_NAME}:${env.BUILD_NUMBER}")
-                    withDockerRegistry(credentialsId: 'lili-gcp-service-account-passwd', url: 'https://gcr.io') {
-                //    docker.withRegistry("https://${REGISTRY_URL}", 'gcr:lili-gcp-service-account-key-json') {
-                        docker.image("${GCR_REGION}/${PROJECT_ID}/${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
-                    }
+                withCredentials([usernamePassword(credentialsId: 'lili-gcp-service-account-passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    script {
+                        def dockerRegistry = "https://${REGISTRY_URL}"
+                        sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin ${dockerRegistry}"
+                        sh "docker push ${dockerRegistry}/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                   }
                 }
             }
         }
-      
-    //   stage('Push Docker image to GCR') {
-     //       steps {
-     //           withCredentials([usernamePassword(credentialsId: 'lili-gcp-service-account-passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-     //               script {
-      //                  def dockerRegistry = "https://${REGISTRY_URL}"
-      //                  sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin ${dockerRegistry}"
-       //                 sh "docker push ${dockerRegistry}/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
-       //             }
-      //          }
-     //       }
-      //  }
       
     }
 }
