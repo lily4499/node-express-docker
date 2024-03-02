@@ -6,7 +6,6 @@ pipeline {
     }
     
     environment {
-        // Define any environment variables needed
         DOCKER_REGISTRY = "us.gcr.io"  // Google Container Registry
         IMAGE_NAME = "lili-gcr-repo"  // Name of your Docker image
         IMAGE_TAG = "latest"  // Tag for your Docker image
@@ -37,13 +36,15 @@ pipeline {
         stage('Push to GCR') {
             steps {
                 script {
-                    // Authenticate Docker with the GCR service account key file
                     withCredentials([file(credentialsId: 'lili-gcp-service-account-key-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        sh "docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh """
+                            gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
+                            gcloud auth configure-docker
+                            docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+                        """
                     }
                 }
             }
         }
     }
 }
-
