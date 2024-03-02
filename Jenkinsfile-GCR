@@ -9,6 +9,7 @@ pipeline {
         PROJECT_ID = "lili-devops"
         IMAGE_NAME = "node-express-app"
         REPOSITORY_NAME = "lili-gcr-repo"
+        REGISTRY_URL = "gcr.io"
     }
     
     stages {
