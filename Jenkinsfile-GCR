@@ -43,7 +43,7 @@ pipeline {
                     // Authenticate Docker with the GCR service account key
                     withCredentials([googleServiceAccount(credentialsId: 'lili-gcp-private-key', scope: 'https://www.googleapis.com/auth/cloud-platform')]) {
                         // Push the Docker image to GCR
-                        docker.withRegistry("https://gcr.io", "lili-gcp-private-key") {
+                        docker.withRegistry("https://us.gcr.io", "lili-gcp-private-key") {
                             docker.image("${GCR_REPO}:${BUILD_NUMBER}").push()
                         }
                     }
