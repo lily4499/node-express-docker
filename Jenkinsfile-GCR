@@ -32,10 +32,13 @@ pipeline {
             }
         }
       
-        stage('Push Docker image to GCR') {
+       stage('Push Docker image to GCR') {
             steps {
-                script {
-                    sh "docker push gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                withCredentials([usernamePassword(credentialsId: 'lili-gcp-service-account-key-json', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    script {
+                        sh "docker login -u ${USERNAME} -p ${PASSWORD} https://gcr.io"
+                        sh "docker push gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                    }
                 }
             }
         }
