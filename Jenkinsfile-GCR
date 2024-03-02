@@ -14,7 +14,7 @@ pipeline {
     stages {
         stage('SCM Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/lily4499/dockerize-amazon.git'
+                git branch: 'main', url: 'https://github.com/lily4499/node-express-docker-backup.git'
             }
         }
         
