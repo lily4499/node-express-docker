@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    
+    options {
+        timeout(time: 10, unit: 'MINUTES')
+    }
+    
+    environment {
+        PROJECT_ID = "lili-devops"
+        IMAGE_NAME = "node-express-app"
+        REPOSITORY_NAME = "lili-gcr-repo"
+    }
+    
+    stages {
+        stage('SCM Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/lily4499/dockerize-amazon.git'
+            }
+        }
+        
+        stage('Build Docker image') {
+            steps {
+                script {
+                    sh "docker build -t gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Trivy Scan (Aqua)') {
+            steps {
+                sh 'trivy image gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}'
+            }
+        }
+      
+        stage('Push Docker image to GCR') {
+            steps {
+                script {
+                    sh "docker push gcr.io/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                }
+            }
+        }
+      
+    }
+}
