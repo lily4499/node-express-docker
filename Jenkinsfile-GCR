@@ -11,7 +11,7 @@ pipeline {
         IMAGE_NAME = "node-express-app"  // Name of your Docker image
         IMAGE_TAG = "latest"  // Tag for your Docker image
         GCP_PROJECT_ID = "lili-devops" // Your Google Cloud Platform project ID
-        GCP_SERVICE_ACCOUNT_KEY = credentials('lili-gcp-private-key') // Jenkins credentials ID for GCP service account key
+        GCP_SERVICE_ACCOUNT_KEY = credentials('lili-gcp-service-account-key-json') // Jenkins credentials ID for GCP service account key
     }
     
     
