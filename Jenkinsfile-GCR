@@ -37,24 +37,20 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image to GCR') {
+        stage('Push to GCR') {
             steps {
                 script {
-                    // Authenticate with Google Cloud using the service account key
-                    withCredentials([file(credentialsId: GCP_SERVICE_ACCOUNT_KEY, variable: 'GCP_KEY')]) {
-                        def GOOGLE_APPLICATION_CREDENTIALS = "${env.WORKSPACE}/gcp-key.json"
-                        sh "echo '${GCP_KEY}' > ${GOOGLE_APPLICATION_CREDENTIALS}"
-                        sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
-                        
-                        // Push the Docker image to Google Container Registry
-                        docker.withRegistry("${DOCKER_REGISTRY}", "${GCP_PROJECT_ID}") {
-                            docker.image("${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}").push()
+                    // Authenticate Docker with the GCR service account key
+                    withCredentials([googleServiceAccount(credentialsId: 'lili-gcp-private-key', scope: 'https://www.googleapis.com/auth/cloud-platform')]) {
+                        // Push the Docker image to GCR
+                        docker.withRegistry("https://gcr.io", "lili-gcp-private-key") {
+                            docker.image("${GCR_REPO}:${BUILD_NUMBER}").push()
                         }
                     }
                 }
             }
         }
-
+       
       
         
       
