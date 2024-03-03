@@ -11,6 +11,7 @@ pipeline {
         IMAGE_NAME = "lili-gcr-repo"  // Name of your Docker image
         IMAGE_TAG = "latest"  // Tag for your Docker image
         GCP_PROJECT_ID = "lili-devops" // Your Google Cloud Platform project ID
+        GCR_KEY_FILE = credentials('lili-gcp-service-account-key-json') // Reference to the uploaded service account key file credential
     }
     
     stages {
@@ -37,11 +38,8 @@ pipeline {
         stage('Push to GCR') {
             steps {
                 script {
-                    // Fetch the GCR key file credential ID
-                    def gcrKeyFileCred = credentials('lili-gcp-service-account-key-json')
-                    
                     // Authenticate Docker with the GCR service account key file
-                    withCredentials([file(credentialsId: gcrKeyFileCred, variable: 'GCR_KEY_FILE')]) {
+                    withCredentials([file(credentialsId: 'lili-gcp-service-account-key-json', variable: 'GCR_KEY_FILE')]) {
                         sh """
                             docker login -u _json_key --password-stdin https://${DOCKER_REGISTRY}
                             cat $GCR_KEY_FILE | docker login -u _json_key --password-stdin https://${DOCKER_REGISTRY}
