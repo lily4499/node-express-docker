@@ -48,6 +48,7 @@ pipeline {
                     // Authenticate Docker with the GCR service account key file
                     withCredentials([file(credentialsId: 'lili2-gcp-service-account-key-jso', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                         // Push Docker image to Google Container Registry
+                        sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
                         sh "docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}"
                     }
                 }
