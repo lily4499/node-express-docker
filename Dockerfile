@@ -8,7 +8,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 #  This copies the package.json and package-lock.json files from the host machine to the /app directory in the container.
-COPY package*.json /app
+COPY package*.json /app/
 
 #  Install dependencies specified in package.json. Since NODE_ENV is set to "production", npm will install only production dependencies.
 RUN npm install
