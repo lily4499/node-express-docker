@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:latest'
-            args '-t'
-        }
-    }
+    agent any
     
     options {
         timeout(time: 10, unit: 'MINUTES')
@@ -16,7 +11,6 @@ pipeline {
         IMAGE_NAME = "lili-gcr-repo"  // Name of your Docker image
         IMAGE_TAG = "latest"  // Tag for your Docker image
         GCP_PROJECT_ID = "lili-devops" // Your Google Cloud Platform project ID
-        GCR_KEY_FILE = credentials('lili-gcp-service-account-key-json') // Reference to the uploaded service account key file credential
     }
     
     stages {
@@ -44,11 +38,8 @@ pipeline {
             steps {
                 script {
                     // Authenticate Docker with the GCR service account key file
-                    withCredentials([file(credentialsId: 'lili-gcp-service-account-key-json', variable: 'GCR_KEY_FILE')]) {
-                        sh """
-                            cat ${GCR_KEY_FILE} | docker login -u _json_key --password-stdin https://us.gcr.io
-                            docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
-                        """
+                    withCredentials([file(credentialsId: 'lili-gcp-service-account-key-json', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        sh "docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}"
                     }
                 }
             }
