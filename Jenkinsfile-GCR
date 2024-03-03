@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:latest'
+            args '-t'
+        }
+    }
     
     options {
         timeout(time: 10, unit: 'MINUTES')
@@ -41,8 +46,7 @@ pipeline {
                     // Authenticate Docker with the GCR service account key file
                     withCredentials([file(credentialsId: 'lili-gcp-service-account-key-json', variable: 'GCR_KEY_FILE')]) {
                         sh """
-                            docker login -u _json_key --password-stdin https://${DOCKER_REGISTRY}
-                            cat $GCR_KEY_FILE | docker login -u _json_key --password-stdin https://${DOCKER_REGISTRY}
+                            cat ${GCR_KEY_FILE} | docker login -u _json_key --password-stdin https://us.gcr.io
                             docker push ${DOCKER_REGISTRY}/${GCP_PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
                         """
                     }
