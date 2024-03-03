@@ -13,7 +13,7 @@ pipeline {
     environment {
         // Define environment variables
         DOCKER_REGISTRY = "us-east4.gcr.io"  // Google Container Registry
-        IMAGE_NAME = "lili-gcr-repo"  // Name of your Docker image
+        IMAGE_NAME = "lili2-gcr-repo"  // Name of your Docker image
         IMAGE_TAG = "latest"  // Tag for your Docker image
         GCP_PROJECT_ID = "lili-devops" // Your Google Cloud Platform project ID
     }
