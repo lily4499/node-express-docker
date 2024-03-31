@@ -51,8 +51,13 @@ pipeline {
                 sh 'docker push $APP_NAME:$BUILD_NUMBER'
             }
         }
-        
-        
+
+         stage('Trigger ManifestUpdate') {
+             steps{
+                build job: 'node-express-manifest', parameters: [string(name: 'IMAGE_TAG', value: env.BUILD_NUMBER)]     
+
+            }         
+        }        
     }
 
     post {
