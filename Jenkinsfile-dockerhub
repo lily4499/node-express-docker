@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('lily-docker-credentials')
-        APP_NAME = "laly9999/node-express-app"
+        APP_NAME = "laly9999/coming-soon-website"
     }
 
     stages { 
