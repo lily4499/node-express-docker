@@ -54,7 +54,7 @@ pipeline {
 
          stage('Trigger ManifestUpdate') {
              steps{
-                build job: 'node-express-manifest', parameters: [string(name: 'IMAGE_TAG', value: env.BUILD_NUMBER)]     
+                build job: 'update-image-coming-soon-web', parameters: [string(name: 'IMAGE_TAG', value: env.BUILD_NUMBER)]     
 
             }         
         }        
