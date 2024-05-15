@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('lily-docker-credentials')
-        APP_NAME = "laly9999/coming-soon-website"
+        APP_NAME = "laly9999/argo-app"
     }
 
     stages { 
@@ -54,7 +54,7 @@ pipeline {
 
          stage('Trigger ManifestUpdate') {
              steps{
-                build job: 'update-rollout-image-coming-soon-web', parameters: [string(name: 'IMAGE_TAG', value: env.BUILD_NUMBER)]     
+                build job: 'update-image-argo-app', parameters: [string(name: 'IMAGE_TAG', value: env.BUILD_NUMBER)]     
 
             }         
         }        
