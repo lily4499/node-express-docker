@@ -25,6 +25,8 @@ spec:
         image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:2
         ports:
         - containerPort: 3000
+      imagePullSecrets:
+      - name: ecr-secret
 
 ---
 # Service
