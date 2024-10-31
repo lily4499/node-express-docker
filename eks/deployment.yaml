@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: node-container
-        image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo
+        image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:2
         ports:
         - containerPort: 3000
 
