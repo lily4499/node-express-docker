@@ -39,18 +39,48 @@ pipeline {
                 echo 'Updating deployment.yaml with the new image tag...'
                 // Replace the image tag in deployment.yaml with the current IMAGE_TAG
                 sh '''
-                   sed -i "s|image:.*|image: $IMAGE_TAG|" k8s/deployment.yaml
+                   sed -i "s|image:.*|image: $IMAGE_TAG|" eks/deployment.yaml
                 '''
             }
         }
         stage('Deploy to EKS') {
             steps {
                 echo 'Deploying to EKS...'
-                sh 'kubectl apply -f k8s/deployment.yaml -n $NAMESPACE'
+                sh 'kubectl apply -f eks/deployment.yaml -n $NAMESPACE'
                 
                 // Wait until pods are up and running
                 echo 'Waiting for pods to be in a running state...'
-                sh 'kubectl rollout status deployment/release-node-app-deployment -n $NAMESPACE'
+                sleep(time: 10, unit: 'SECONDS')
+            }
+        }
+        stage('Verify App Deployment') {
+            steps {
+                // Check deployment status
+                sh 'kubectl get pods'
+                sh 'kubectl get svc'
+            }
+        }
+        
+        stage('Verify Tag Deployment') {
+            steps {
+                echo 'Verifying the deployed image tag...'
+                
+                // Get the current image running in the deployment
+                script {
+                    def deployedImage = sh(
+                        script: "kubectl get deployment node-deployment -n $NAMESPACE -o=jsonpath='{.spec.template.spec.containers[0].image}'",
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Deployed Image: ${deployedImage}"
+                    
+                    // Check if the deployed image matches the expected IMAGE_TAG
+                    if (deployedImage == "${IMAGE_TAG}") {
+                        echo "Deployment verification successful: Correct image tag ${IMAGE_TAG} is deployed."
+                    } else {
+                        error "Deployment verification failed: Expected ${IMAGE_TAG}, but found ${deployedImage}."
+                    }
+                }
             }
         }
     }
@@ -61,3 +91,4 @@ pipeline {
         }
     }
 }
+
