@@ -22,11 +22,11 @@ spec:
     spec:
       containers:
       - name: node-container
-        image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:2
+        image: 637423529262.dkr.ecr.us-east-1.amazonaws.com/my-app-repo:4  # Update to ECR image
         ports:
         - containerPort: 3000
       imagePullSecrets:
-      - name: ecr-secret
+      - name: ecr-secret  # Add this if you’re using a private ECR
 
 ---
 # Service
