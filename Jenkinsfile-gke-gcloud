@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+    environment {
+        GCP_CREDENTIALS = 'gcr-credentials-key-id'  // Jenkins credentials ID for Google Cloud service account JSON
+        PROJECT_ID = 'dev-demo-pro'  // GCP project ID
+        GCR_LOGIN_SERVER = "us.gcr.io/${PROJECT_ID}"  // GCR login server URL
+        IMAGE_TAG = "${GCR_LOGIN_SERVER}/my-app:${BUILD_NUMBER}"  // Tag image with build number
+        NAMESPACE = 'default'  // Kubernetes namespace for deployment
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning Git repository...'
+                git branch: 'main', url: 'https://github.com/lily4499/node-express-docker.git'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t $IMAGE_TAG .'
+            }
+        }
+        stage('Login to Google Container Registry (GCR)') {
+            steps {
+                echo 'Logging in to Google Container Registry...'
+                withCredentials([file(credentialsId: "$GCP_CREDENTIALS", variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh '''
+                        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                        gcloud auth configure-docker $GCR_LOGIN_SERVER
+                    '''
+                }
+            }
+        }
+        stage('Push Docker Image to GCR') {
+            steps {
+                echo 'Pushing Docker image to GCR...'
+                sh 'docker push $IMAGE_TAG'
+            }
+        }
+        stage('Update Deployment File') {
+            steps {
+                echo 'Updating deployment.yaml with the new image tag...'
+                sh '''
+                   sed -i "s|image:.*|image: $IMAGE_TAG|" gke/deployment.yaml
+                '''
+            }
+        }
+        stage('Deploy to GKE') {
+            steps {
+                echo 'Deploying to GKE...'
+                sh 'kubectl apply -f gke/deployment.yaml -n $NAMESPACE'
+                
+                echo 'Waiting for pods to be in a running state...'
+                sleep(time: 10, unit: 'SECONDS')
+            }
+        }
+        stage('Verify App Deployment') {
+            steps {
+                echo 'Verifying the deployment...'
+                sh 'kubectl get pods -n $NAMESPACE'
+                sh 'kubectl get svc -n $NAMESPACE'
+            }
+        }
+        stage('Verify Image Tag') {
+            steps {
+                echo 'Verifying the deployed image tag...'
+                
+                script {
+                    def deployedImage = sh(
+                        script: "kubectl get deployment node-deployment -n $NAMESPACE -o=jsonpath='{.spec.template.spec.containers[0].image}'",
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Deployed Image: ${deployedImage}"
+                    
+                    if (deployedImage == "${IMAGE_TAG}") {
+                        echo "Deployment verification successful: Correct image tag ${IMAGE_TAG} is deployed."
+                    } else {
+                        error "Deployment verification failed: Expected ${IMAGE_TAG}, but found ${deployedImage}."
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Cleaning up local Docker images...'
+            sh 'docker rmi $IMAGE_TAG || true'
+        }
+    }
+}
