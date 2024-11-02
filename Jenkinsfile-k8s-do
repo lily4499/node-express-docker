@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+    environment {
+        DO_TOKEN = credentials('digitalocean-token')  // Jenkins credential ID for DigitalOcean token
+        DO_REGISTRY = 'registry.digitalocean.com/dolilregistry'
+        IMAGE_TAG = "${DO_REGISTRY}/do-app:${BUILD_NUMBER}"  // Tag image with build number
+        NAMESPACE = 'default'  // Kubernetes namespace for deployment
+        CLUSTER_NAME = 'do-k8s-cluster'
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning Git repository...'
+                git branch: 'main', url: 'https://github.com/lily4499/node-express-docker.git'
+            }
+        }
+        stage('Authenticate with DigitalOcean Registry') {
+            steps {
+                echo 'Logging into DigitalOcean Registry...'
+                sh 'doctl auth init --access-token $DO_TOKEN'
+                sh 'doctl registry login'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh "docker build -t ${IMAGE_TAG} ."
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                echo 'Pushing Docker image to DigitalOcean Container Registry...'
+                sh "docker push ${IMAGE_TAG}"
+            }
+        }
+        stage('Update Deployment File') {
+            steps {
+                echo 'Updating deployment.yaml with the new image tag...'
+                sh '''
+                   sed -i "s|image:.*|image: ${IMAGE_TAG}|" k8s/deployment.yaml
+                '''
+            }
+        }
+        stage('Deploy to DigitalOcean Kubernetes') {
+            steps {
+                echo 'Setting up kubeconfig for DigitalOcean Kubernetes...'
+                sh "doctl kubernetes cluster kubeconfig save $CLUSTER_NAME"
+                
+                echo 'Deploying to DigitalOcean Kubernetes...'
+                sh "kubectl apply -f k8s/deployment.yaml -n ${NAMESPACE}"
+                
+                echo 'Waiting for pods to be in a running state...'
+                sleep(time: 10, unit: 'SECONDS')
+            }
+        }
+        stage('Verify App Deployment') {
+            steps {
+                echo 'Verifying the deployment...'
+                sh "kubectl get pods -n ${NAMESPACE}"
+                sh "kubectl get svc -n ${NAMESPACE}"
+            }
+        }
+        stage('Verify Image Tag') {
+            steps {
+                echo 'Verifying the deployed image tag...'
+                script {
+                    def deployedImage = sh(
+                        script: "kubectl get deployment node-deployment -n ${NAMESPACE} -o=jsonpath='{.spec.template.spec.containers[0].image}'",
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Deployed Image: ${deployedImage}"
+                    
+                    if (deployedImage == "${IMAGE_TAG}") {
+                        echo "Deployment verification successful: Correct image tag ${IMAGE_TAG} is deployed."
+                    } else {
+                        error "Deployment verification failed: Expected ${IMAGE_TAG}, but found ${deployedImage}."
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Cleaning up local Docker images...'
+            sh "docker rmi ${IMAGE_TAG} || true"
+        }
+    }
+}
