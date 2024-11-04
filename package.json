@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --recursive --timeout 60000 --exit"
-  },
+  "start": "node index.js",
+  "test": "mocha --recursive --timeout 60000 --exit"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
