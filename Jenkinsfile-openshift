@@ -1,0 +1,111 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY_URL = "default-route-openshift-image-registry.apps.sandbox-m2.ll9k.p1.openshiftapps.com"
+        PROJECT_NAME = "lili2024-dev"
+        OPENSHIFT_SERVER = "https://api.sandbox-m2.ll9k.p1.openshiftapps.com:6443"
+        OPENSHIFT_TOKEN = credentials('openshift-token')
+        IMAGE_NAME = "devops-app"
+        SERVICE_NAME = "app-service"
+        DEPLOYMENT_NAME = "app-deployment"
+        TAG = "${BUILD_NUMBER}" // Use Jenkins build number as the tag
+        GIT_REPO = 'https://github.com/lily4499/demo-node-app.git'  // Replace with your repository URL
+        GIT_HUB = 'github.com/lily4499/demo-node-app.git'
+        GIT_BRANCH = 'main'  // Replace with your branch name if different
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                // Check out the code from GitHub
+                git branch: "${env.GIT_BRANCH}",
+                    url: "${env.GIT_REPO}",
+                    credentialsId: 'github-token'  // Replace with your Jenkins GitHub credentials ID
+            }
+        }
+
+        stage('Login to OpenShift and Docker Registry') {
+            steps {
+                script {
+                    // Login to OpenShift
+                    sh """
+                    oc login $OPENSHIFT_SERVER --token=$OPENSHIFT_TOKEN
+                    """
+
+                    // Login to Docker registry with OpenShift token
+                    sh """
+                    docker login -u \$(oc whoami) -p $OPENSHIFT_TOKEN $REGISTRY_URL
+                    """
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${IMAGE_NAME}:${TAG} .'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker tag ${IMAGE_NAME}:${TAG} ${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${TAG}'
+                sh 'docker push ${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${TAG}'
+            }
+        }
+
+        stage('Update Deployment File and Commit to GitHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    script {
+                        // Update the deployment.yaml file with the new image tag
+                        sh '''#!/bin/bash
+                        sed -i 's|image: ${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:.*|image: ${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${TAG}|' deployment.yaml
+                        '''
+                        
+                        // Commit and push the updated file back to GitHub
+                        sh '''#!/bin/bash
+                        git config user.name "${GIT_USER_NAME}"
+                        git config user.email "${GIT_USER_EMAIL}"
+                        git add .
+                        git commit -m "Update image tag to ${TAG}"
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${GIT_HUB} ${GIT_BRANCH}
+                        '''
+                    }
+                }
+            }
+        }
+       
+
+        stage('Deploy to OpenShift') {
+            steps {
+                sh 'oc apply -f deployment.yaml'
+                sh 'oc set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${TAG} --record'
+                sh 'oc rollout status deployment/${DEPLOYMENT_NAME}'
+            }
+        }
+
+        stage('Create OpenShift Route') {
+            steps {
+                script {
+                    // Expose the service by creating a route if it doesn't already exist
+                    sh 'oc expose service ${SERVICE_NAME} || true'
+                    
+                    // Get the route URL and display it
+                    def routeUrl = sh(script: 'oc get route ${SERVICE_NAME} -o jsonpath="{.spec.host}"', returnStdout: true).trim()
+                    echo "Application is accessible at: http://${routeUrl}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                // Clean up Docker images from the local environment
+                sh 'docker rmi ${IMAGE_NAME}:${TAG} || true'
+                sh 'docker rmi ${REGISTRY_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${TAG} || true'
+            }
+        }
+    }
+}
