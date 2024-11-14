@@ -1,10 +1,11 @@
 pipeline {
     agent any
     environment {
-        DO_TOKEN = credentials('digitalocean-token')  // Jenkins credential ID for DigitalOcean token
+        DO_TOKEN = credentials('digitalocean-credentials-id')  // Jenkins credential ID for DigitalOcean token
         DO_URI_REGISTRY = 'registry.digitalocean.com/$DO_REGISTRY_NAME'
         DO_REGISTRY_NAME = 'dolilregistry'
-        IMAGE_TAG = "${DO_URI_REGISTRY}/DO_REGISTRY_NAME:${BUILD_NUMBER}"  // Tag image with build number
+        IMAGE_TAG = ""${BUILD_NUMBER}"  // Tag image with build number
+        IMAGE_URL = "${DO_URI_REGISTRY}/DO_REGISTRY_NAME:${BUILD_NUMBER}"
         NAMESPACE = 'default'  // Kubernetes namespace for deployment
         CLUSTER_NAME = 'do-k8s-cluster'
     }
